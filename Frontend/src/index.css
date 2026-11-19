@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: ui-sans-serif, "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+
+  --color-bg-canvas: #05070c;
+  --color-bg-base: #0a0e16;
+  --color-bg-panel: #0f1420;
+  --color-bg-raised: #141a29;
+  --color-bg-hover: #1a2233;
+  --color-border-subtle: #1c2433;
+  --color-border: #263047;
+  --color-border-strong: #34405c;
+
+  --color-text-primary: #e7ebf3;
+  --color-text-secondary: #aab3c5;
+  --color-text-muted: #6b7690;
+  --color-text-faint: #4b5468;
+
+  --color-accent: #6366f1;
+  --color-accent-soft: #818cf8;
+  --color-accent-dim: #363b6e;
+
+  --color-change-construction: #e69f00;
+  --color-change-clearance: #d55e00;
+  --color-change-water: #56b4e9;
+  --color-change-roads: #cc79a7;
+
+  --color-status-good: #34d399;
+  --color-status-warn: #fbbf24;
+  --color-status-bad: #f87171;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: var(--color-accent-dim);
+  color: white;
+}
+
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-faint);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent-soft);
+  outline-offset: 1px;
+  border-radius: 3px;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+.animate-pulse-soft {
+  animation: pulse-soft 1.8s ease-in-out infinite;
+}
+
+@keyframes scan-sweep {
+  0% { transform: translateY(-110%); opacity: 0; }
+  8% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { transform: translateY(110%); opacity: 0; }
+}
+.animate-scan-sweep {
+  animation: scan-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) 1;
+}
+
+@keyframes box-glow {
+  0%, 100% { box-shadow: 0 0 0 1px currentColor, 0 0 0px 0px currentColor; }
+  50% { box-shadow: 0 0 0 1.5px currentColor, 0 0 14px 2px currentColor; }
+}
+.animate-box-glow {
+  animation: box-glow 1.6s ease-in-out infinite;
+}
