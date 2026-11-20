@@ -1,0 +1,103 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: drishti_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-drishti}
+      POSTGRES_USER: ${POSTGRES_USER:-drishti}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-drishti_dev_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/docker/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-drishti} -d ${POSTGRES_DB:-drishti}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: drishti_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: drishti_api
+    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      - APP_NAME=DRISHTI
+      - APP_ENV=development
+      - DEBUG=true
+      - API_V1_PREFIX=/api
+      - SECRET_KEY=${SECRET_KEY:-dev-insecure-secret-key-change-in-production-drishti-2026}
+      - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-drishti}:${POSTGRES_PASSWORD:-drishti_dev_password}@db:5432/${POSTGRES_DB:-drishti}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      - DATA_ROOT=/app/data
+      - IMAGERY_ROOT=/app/data/imagery
+      - TILE_ROOT=/app/data/tiles
+      - THUMBNAIL_ROOT=/app/data/thumbnails
+      - MODEL_ROOT=/app/data/models
+      - EXPORT_ROOT=/app/data/exports
+      - LOCAL_BASEMAP_ROOT=/app/data/local_basemaps
+      - OFFLINE_MODE=true
+      - HF_HUB_OFFLINE=1
+      - TRANSFORMERS_OFFLINE=1
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/app:/app/app
+      - ./data:/app/data
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: drishti_worker
+    restart: unless-stopped
+    command: celery -A app.workers.celery_app.celery_app worker --loglevel=info -c 2
+    environment:
+      - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-drishti}:${POSTGRES_PASSWORD:-drishti_dev_password}@db:5432/${POSTGRES_DB:-drishti}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+      - DATA_ROOT=/app/data
+      - IMAGERY_ROOT=/app/data/imagery
+      - TILE_ROOT=/app/data/tiles
+      - THUMBNAIL_ROOT=/app/data/thumbnails
+      - MODEL_ROOT=/app/data/models
+      - EXPORT_ROOT=/app/data/exports
+      - OFFLINE_MODE=true
+    volumes:
+      - ./backend/app:/app/app
+      - ./data:/app/data
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:

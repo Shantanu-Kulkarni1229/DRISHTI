@@ -1,0 +1,71 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+/lib/
+/lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Environment files and secrets (NEVER COMMIT SECRETS)
+.env
+.env.local
+.env.*.local
+*.env
+!.env.example
+!backend/.env.example
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Node / Frontend
+Frontend/node_modules/
+Frontend/dist/
+Frontend/.vite/
+
+# Application Data & Media (Preserve directory structure via .gitkeep)
+data/imagery/*
+!data/imagery/.gitkeep
+data/tiles/*
+!data/tiles/.gitkeep
+data/thumbnails/*
+!data/thumbnails/.gitkeep
+data/models/*
+!data/models/.gitkeep
+data/exports/*
+!data/exports/.gitkeep
+data/local_basemaps/*
+!data/local_basemaps/.gitkeep
+
+# OS and Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
