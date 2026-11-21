@@ -27,9 +27,14 @@ def test_audit_hash_deterministic():
     assert len(h1) == 64
 
 
-def test_audit_record_chaining(db_session, test_org):
+def test_audit_record_chaining_and_verification(db_session, test_org):
     service = AuditService(db_session)
     org_id = str(test_org.id)
+
+    # Empty chain verification
+    res_empty = service.verify_chain(org_id)
+    assert res_empty["valid"] is True
+    assert res_empty["records_verified"] == 0
 
     rec1 = service.record_event(
         organisation_id=org_id,
@@ -53,3 +58,18 @@ def test_audit_record_chaining(db_session, test_org):
 
     # Verify that rec2 chained back to rec1's record_hash
     assert rec2.previous_hash == rec1.record_hash
+
+    # Verify intact chain
+    res = service.verify_chain(org_id)
+    assert res["valid"] is True
+    assert res["records_verified"] == 2
+    assert res["latest_hash"] == rec2.record_hash
+
+    # Tampering test: modify payload of rec1 directly in database
+    rec1.payload = {"tiles": 9999}  # Tampered!
+    db_session.commit()
+
+    tamper_res = service.verify_chain(org_id)
+    assert tamper_res["valid"] is False
+    assert tamper_res["broken_at_id"] == str(rec1.id)
+    assert "tampering" in tamper_res["reason"].lower() or "mismatch" in tamper_res["reason"].lower()

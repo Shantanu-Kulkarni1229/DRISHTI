@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
@@ -41,3 +41,12 @@ def get_audit_trail(
         )
         for r in records
     ]
+
+
+@router.get("/verify")
+def verify_audit_trail(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
+    service = AuditService(db)
+    return service.verify_chain(organisation_id=str(current_user.organisation_id))

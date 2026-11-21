@@ -29,7 +29,7 @@ def submit_change_job(
 
     return ChangeJobResponse(
         id=job.id,
-        status=job.status,
+        status="queued",
         current_stage=job.current_stage,
         progress=job.progress,
         sensitivity=job.sensitivity,

@@ -9,6 +9,7 @@ from app.models.scene import Scene
 from app.models.tile import Tile
 from app.models.user import User
 from app.schemas.tiles import TileDetailResponse, TileResponse, TimeSeriesPointResponse
+from app.services.discovery.clustering_service import ClusteringService
 
 router = APIRouter(prefix="/tiles", tags=["Tiles"])
 
@@ -61,22 +62,16 @@ def get_similar_tiles(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    tile = (
-        db.query(Tile)
-        .filter(Tile.id == tile_id, Tile.organisation_id == current_user.organisation_id)
-        .first()
-    )
-    if not tile:
+    service = ClusteringService(db)
+    try:
+        similar_tiles = service.get_similar_tiles(
+            organisation_id=str(current_user.organisation_id),
+            tile_id=tile_id,
+            k=k,
+            space=space,
+        )
+    except EntityNotFoundError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Tile {tile_id} not found.")
-
-    # Return co-located or clustered tiles
-    query = db.query(Tile).filter(
-        Tile.organisation_id == current_user.organisation_id,
-        Tile.id != tile_id,
-    )
-    if tile.cluster_id:
-        query = query.filter(Tile.cluster_id == tile.cluster_id)
-    similar_tiles = query.limit(k).all()
 
     results: List[TileResponse] = []
     for t in similar_tiles:

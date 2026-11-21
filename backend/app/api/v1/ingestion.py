@@ -2,7 +2,7 @@ import os
 import shutil
 import time
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
@@ -70,7 +70,7 @@ async def ingest_raster_file(
             file_path=Path(source_path),
             aoi_id=aoi_id,
         )
-    except Exception as e:
+    except Exception:
         # Failure is captured inside pipeline and persisted to job record
         pass
 
@@ -80,6 +80,57 @@ async def ingest_raster_file(
         status="queued",
         message="Scene accepted for asynchronous incremental ingestion.",
     )
+
+
+@router.post("/watch")
+def trigger_watch_folder(
+    req: WatchFolderTriggerRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
+    settings = get_settings()
+    job_id = f"ingest-watch-{int(time.time() * 1000)}"
+
+    safe_rel = req.watch_path.lstrip("/\\")
+    candidate_path = (settings.IMAGERY_ROOT / safe_rel).resolve()
+    if not str(candidate_path).startswith(str(settings.IMAGERY_ROOT.resolve())):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid watched folder path traversal.")
+    if not candidate_path.is_file():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"File not found in watch folder: {req.watch_path}")
+
+    filename = candidate_path.name
+    source_path = str(candidate_path)
+
+    job = IngestionJob(
+        id=job_id,
+        organisation_id=current_user.organisation_id,
+        source_path=source_path,
+        filename=filename,
+        aoi_id=req.aoi_id or "global",
+        status="queued",
+        current_stage="queued",
+        progress=0,
+    )
+    db.add(job)
+    db.commit()
+
+    pipeline = IngestionPipeline(db)
+    try:
+        pipeline.process_scene(
+            organisation_id=str(current_user.organisation_id),
+            job_id=job_id,
+            file_path=Path(source_path),
+            aoi_id=req.aoi_id,
+        )
+    except Exception:
+        pass
+
+    return {
+        "jobId": job_id,
+        "job_id": job_id,
+        "filename": filename,
+        "status": "queued",
+    }
 
 
 @router.get("/jobs", response_model=List[IngestJobResponse])

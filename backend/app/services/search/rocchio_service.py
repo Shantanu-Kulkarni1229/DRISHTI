@@ -11,10 +11,11 @@ class RocchioReranker:
         self.gamma = gamma
 
     def _mean_vector(self, vectors: List[List[float]], dim: int) -> List[float]:
-        if not vectors:
+        matching = [v for v in vectors if len(v) == dim]
+        if not matching:
             return [0.0] * dim
-        n = len(vectors)
-        return [sum(v[i] for v in vectors) / n for i in range(dim)]
+        n = len(matching)
+        return [sum(v[i] for v in matching) / n for i in range(dim)]
 
     def _normalize(self, v: List[float]) -> List[float]:
         norm = math.sqrt(sum(x * x for x in v))

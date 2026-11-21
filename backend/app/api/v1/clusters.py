@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -19,6 +19,32 @@ def get_clusters(
 ):
     service = ClusteringService(db)
     clusters = service.list_clusters(organisation_id=str(current_user.organisation_id), aoi_id=aoi_id)
+    return [
+        ClusterResponse(
+            id=c.id,
+            name=c.name,
+            is_saved=c.is_saved,
+            member_tile_ids=c.member_tile_ids or [],
+            color=c.color,
+            centroid_2d=c.centroid_2d,
+        )
+        for c in clusters
+    ]
+
+
+@router.post("/recompute", response_model=List[ClusterResponse])
+def recompute_clusters(
+    aoi_id: Optional[str] = None,
+    min_cluster_size: int = Query(default=3, ge=2, le=50),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    service = ClusteringService(db)
+    clusters = service.compute_clusters_and_projections(
+        organisation_id=str(current_user.organisation_id),
+        aoi_id=aoi_id,
+        min_cluster_size=min_cluster_size,
+    )
     return [
         ClusterResponse(
             id=c.id,

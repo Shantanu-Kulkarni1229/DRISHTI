@@ -31,8 +31,10 @@ def submit_feedback(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # Persist feedback in audit or session context
-    return RelevanceFeedbackResponse(
-        status="recorded",
-        feedback_rounds=1,
+    service = SearchService(db)
+    return service.submit_feedback(
+        organisation_id=str(current_user.organisation_id),
+        actor_id=str(current_user.id),
+        actor_name=current_user.display_name,
+        req=req,
     )

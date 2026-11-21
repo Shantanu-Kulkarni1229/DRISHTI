@@ -158,6 +158,37 @@ def seed():
             )
             db.add(tile)
             db.commit()
+            print(f"Created tile: {tile.id}")
+
+            # 4b. Seed Tile Embeddings for RemoteCLIP & DINOv2
+            import random
+            import math
+            raw_vec = [random.gauss(0, 1) for _ in range(768)]
+            mag = math.sqrt(sum(x * x for x in raw_vec))
+            unit_vec = [x / mag for x in raw_vec]
+
+            emb_clip = TileEmbedding(
+                id=uuid.uuid4(),
+                organisation_id=org.id,
+                tile_id=tile.id,
+                model_name="RemoteCLIP",
+                model_version="ViT-L-14",
+                dimension=768,
+                embedding=unit_vec,
+            )
+            emb_dino = TileEmbedding(
+                id=uuid.uuid4(),
+                organisation_id=org.id,
+                tile_id=tile.id,
+                model_name="DINOv2",
+                model_version="ViT-B-14",
+                dimension=768,
+                embedding=unit_vec,
+            )
+            db.add(emb_clip)
+            db.add(emb_dino)
+            db.commit()
+            print("Seeded RemoteCLIP and DINOv2 vector embeddings.")
 
         # 5. Change Job & Candidates
         chg_job = db.query(ChangeJob).filter(ChangeJob.id == "chg-job-001").first()
@@ -214,7 +245,7 @@ def seed():
                 direction="appearance",
                 score=0.92,
                 confidence=0.89,
-                factors=[
+                confidence_factors=[
                     {"gate": "validity", "label": "Valid observation fraction", "value": 0.98},
                     {"gate": "radiometry", "label": "Radiometric consistency", "value": 0.94},
                     {"gate": "registration", "label": "Registration residual", "value": 0.88},

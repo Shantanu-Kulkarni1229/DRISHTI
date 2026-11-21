@@ -1,4 +1,5 @@
 import io
+from app.core.config import get_settings
 from app.models.ingestion import IngestionJob
 
 
@@ -12,6 +13,22 @@ def test_ingest_multipart_file_upload(client):
     resp_data = res.json()
     assert "job_id" in resp_data
     assert resp_data["status"] == "queued"
+
+
+def test_watch_folder_trigger(client, test_user):
+    settings = get_settings()
+    # Create test staged file in IMAGERY_ROOT
+    staged_file = settings.IMAGERY_ROOT / "watch_test_scene.tif"
+    staged_file.write_bytes(b"II*\x00" + b"\x00" * 512)
+
+    res = client.post(
+        "/api/ingest/watch",
+        json={"watch_path": "watch_test_scene.tif", "aoi_id": "sector-alpha"},
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert "jobId" in data
+    assert data["status"] == "queued"
 
 
 def test_ingestion_jobs_list_and_detail(client, db_session, test_user):
